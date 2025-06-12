@@ -13,8 +13,13 @@ const app = express();
 const upload = multer({ dest: 'uploads/' });
 
 // Enable CORS for development
+const allowedOrigins = ['http://print.borklab.com', 'https://print.borklab.com'];
+
 app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   
@@ -32,13 +37,9 @@ await fs.mkdir(uploadsDir, { recursive: true });
 
 // Endpoint to discover network printers
 app.get('/api/printers', async (req, res) => {
-  try {
-    const printers = await discoverPrinters();
+  try {    const printers = await discoverPrinters();
     // Set proper headers
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Access-Control-Allow-Origin', 'http://print.borklab.com');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
     
     // Ensure valid JSON response
     res.json({
