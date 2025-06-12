@@ -21,17 +21,25 @@ const PrinterSelector: React.FC<PrinterSelectorProps> = ({ onPrinterSelect }) =>
     setError(null);
     try {
       const response = await fetch('/api/printers', {
+        method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Accept': 'application/json'
         }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to scan for printers');
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Raw response:', text);
+        throw new Error('Invalid JSON response from server');
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to scan for printers');
+      }
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to scan for printers');
       }
@@ -41,7 +49,7 @@ const PrinterSelector: React.FC<PrinterSelectorProps> = ({ onPrinterSelect }) =>
         setError('No printers found on the network');
       }
     } catch (err) {
-      setError('Failed to scan network for printers');
+      setError(err instanceof Error ? err.message : 'Failed to scan network for printers');
       console.error('Error scanning for printers:', err);
     } finally {
       setIsScanning(false);
