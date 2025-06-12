@@ -14,12 +14,9 @@ services:
     build:
       context: .
       dockerfile: server/Dockerfile
-    ports:
-      - "3001:3001"
+    network_mode: "host"  # Use host network for printer discovery
     volumes:
       - ./uploads:/app/uploads
-    networks:
-      - netprint-network
 
 networks:
   netprint-network:
