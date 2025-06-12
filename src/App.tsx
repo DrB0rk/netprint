@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Container, Paper, Typography, Button, Box, Alert } from '@mui/material';
 import FileUpload from './components/FileUpload';
 import PrinterSelector from './components/PrinterSelector';
