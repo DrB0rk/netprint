@@ -20,7 +20,7 @@ const PrinterSelector: React.FC<PrinterSelectorProps> = ({ onPrinterSelect }) =>
     setIsScanning(true);
     setError(null);
     try {
-      const response = await fetch('/api/printers', {
+      const response = await fetch('https://printapi.borklab.com/api/printers', {
         method: 'GET',
         headers: {
           'Accept': 'application/json'
