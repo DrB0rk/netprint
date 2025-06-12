@@ -6,7 +6,9 @@ services:
     ports:
       - "80:80"
     environment:
-      - VITE_API_URL=http://10.0.0.21:3001
+      - VITE_API_URL=http://backend:3001
+    depends_on:
+      - backend
     networks:
       - netprint-network
 
@@ -18,7 +20,6 @@ services:
       - "3001:3001"
     volumes:
       - ./uploads:/app/uploads
-    network_mode: "host"  # Required for printer discovery
     networks:
       - netprint-network
 

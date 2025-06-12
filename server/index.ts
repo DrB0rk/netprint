@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import ipp from 'ipp';
 import { promises as fs } from 'fs';
@@ -13,10 +13,17 @@ const app = express();
 const upload = multer({ dest: 'uploads/' });
 
 // Enable CORS for development
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
 });
 
 // Ensure uploads directory exists
@@ -27,47 +34,62 @@ await fs.mkdir(uploadsDir, { recursive: true });
 app.get('/api/printers', async (req, res) => {
   try {
     const printers = await discoverPrinters();
-    res.json(printers);
+    res.json(printers || []);
   } catch (error) {
     console.error('Error discovering printers:', error);
-    res.status(500).json({ error: 'Failed to discover printers' });
+    res.status(500).json({ 
+      error: 'Failed to discover printers',
+      printers: [] 
+    });
   }
 });
 
-app.post('/api/print', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file || !req.body.printerUri) {
-      return res.status(400).json({ error: 'Missing file or printer URI' });
-    }    const { path: filePath } = req.file;
-    const { printerUri } = req.body;    // Read the file
-    const fileData = await fs.readFile(filePath);    // Create IPP client using the correct method
-    const printer = new ipp.Printer(printerUri);
-    
-    // Send print job with proper attributes
-    const result = await new Promise((resolve, reject) => {
-      const msg = {
-        "operation-attributes-tag": {
-          "requesting-user-name": "netprint",
-          "job-name": req.file?.originalname || "print job",
-          "document-format": "application/octet-stream"
-        },
-        data: fileData
-      };
-      
-      printer.execute("Print-Job", msg, (err, res) => {
-        if (err) reject(err);
-        else resolve(res);
-      });
-    });
-
-    // Clean up the uploaded file
-    await fs.unlink(filePath);
-
-    res.json({ success: true, jobId: result?.['job-attributes-tag']?.['job-id'] });
-  } catch (error) {
-    console.error('Print error:', error);
-    res.status(500).json({ error: 'Failed to print document' });
+// Add type interface for IPP response
+interface IPPResponse {
+  'job-attributes-tag'?: {
+    'job-id'?: number
   }
+}
+
+app.post('/api/print', upload.single('file'), (req, res, next) => {
+  (async () => {
+    try {
+      if (!req.file || !req.body.printerUri) {
+        return res.status(400).json({ error: 'Missing file or printer URI' });
+      }
+      const { path: filePath } = req.file;
+      const { printerUri } = req.body;
+      // Read the file
+      const fileData = await fs.readFile(filePath);
+      // Create IPP client using the correct method
+      const printer = new ipp.Printer(printerUri);
+      
+      // Send print job with proper attributes
+      const result = await new Promise<IPPResponse>((resolve, reject) => {
+        const msg = {
+          "operation-attributes-tag": {
+            "requesting-user-name": "netprint",
+            "job-name": req.file?.originalname || "print job",
+            "document-format": "application/octet-stream"
+          },
+          data: fileData
+        };
+        
+        (printer.execute as any)("Print-Job", msg, (err: Error | null, res: IPPResponse) => {
+          if (err) reject(err);
+          else resolve(res);
+        });
+      });
+
+      // Clean up the uploaded file
+      await fs.unlink(filePath);
+
+      res.json({ success: true, jobId: result?.['job-attributes-tag']?.['job-id'] });
+    } catch (error) {
+      console.error('Print error:', error);
+      res.status(500).json({ error: 'Failed to print document' });
+    }
+  })().catch(next);
 });
 
 const PORT = process.env.PORT || 3001;

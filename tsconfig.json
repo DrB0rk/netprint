@@ -1,9 +1,15 @@
 {
   "files": [],
   "compilerOptions": {
-    "forceConsistentCasingInFileNames": true,
-    "strict": true
-  },
+        "outDir": "./dist",
+        "module": "ES2022",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "allowJs": true,
+        "target": "ES2022",
+        "forceConsistentCasingInFileNames": true,
+        "strict": true
+    },
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
