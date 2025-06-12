@@ -26,12 +26,18 @@ const PrinterSelector: React.FC<PrinterSelectorProps> = ({ onPrinterSelect }) =>
           'Content-Type': 'application/json'
         }
       });
+
       if (!response.ok) {
         throw new Error('Failed to scan for printers');
       }
-      const foundPrinters = await response.json();
-      setPrinters(foundPrinters);
-      if (foundPrinters.length === 0) {
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to scan for printers');
+      }
+
+      setPrinters(data.printers);
+      if (data.printers.length === 0) {
         setError('No printers found on the network');
       }
     } catch (err) {
