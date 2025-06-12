@@ -25,18 +25,21 @@ function App() {
       formData.append('file', selectedFile);
       formData.append('printerUri', selectedPrinter.uri);
 
-      const response = await fetch('/api/print', {
+      const response = await fetch('https://printapi.borklab.com/api/print', {
         method: 'POST',
         body: formData,
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Printing failed');
+        throw new Error(data.error || 'Printing failed');
       }
 
       setSuccess('Document sent to printer successfully!');
       setError(null);
     } catch (err) {
+      console.error('Print error:', err);
       setError('Failed to send document to printer. Please try again.');
       setSuccess(null);
     }

@@ -71,10 +71,36 @@ app.post('/api/print', upload.single('file'), (req, res, next) => {
       }
       const { path: filePath } = req.file;
       const { printerUri } = req.body;
+      
       // Read the file
       const fileData = await fs.readFile(filePath);
-      // Create IPP client using the correct method
+      
+      // Create IPP client
       const printer = new ipp.Printer(printerUri);
+      
+      // Try to determine document format based on file extension
+      const fileExt = req.file.originalname.split('.').pop()?.toLowerCase() || '';
+      let documentFormat = 'application/octet-stream';
+      
+      // Map common file extensions to MIME types
+      const mimeTypes: Record<string, string> = {
+        'pdf': 'application/pdf',
+        'txt': 'text/plain',
+        'jpeg': 'image/jpeg',
+        'jpg': 'image/jpeg',
+        'png': 'image/png'
+      };
+      
+      if (fileExt in mimeTypes) {
+        documentFormat = mimeTypes[fileExt];
+      }
+      
+      console.log('Printing file:', {
+        filename: req.file.originalname,
+        size: fileData.length,
+        printerUri,
+        documentFormat
+      });
       
       // Send print job with proper attributes
       const result = await new Promise<IPPResponse>((resolve, reject) => {
@@ -82,24 +108,36 @@ app.post('/api/print', upload.single('file'), (req, res, next) => {
           "operation-attributes-tag": {
             "requesting-user-name": "netprint",
             "job-name": req.file?.originalname || "print job",
-            "document-format": "application/octet-stream"
+            "document-format": documentFormat
           },
           data: fileData
         };
         
         (printer.execute as any)("Print-Job", msg, (err: Error | null, res: IPPResponse) => {
-          if (err) reject(err);
-          else resolve(res);
+          if (err) {
+            console.error('IPP error:', err);
+            reject(err);
+          } else {
+            console.log('Print job response:', res);
+            resolve(res);
+          }
         });
       });
 
       // Clean up the uploaded file
       await fs.unlink(filePath);
 
-      res.json({ success: true, jobId: result?.['job-attributes-tag']?.['job-id'] });
+      res.json({ 
+        success: true, 
+        jobId: result?.['job-attributes-tag']?.['job-id'],
+        message: 'Print job sent successfully'
+      });
     } catch (error) {
       console.error('Print error:', error);
-      res.status(500).json({ error: 'Failed to print document' });
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to print document' 
+      });
     }
   })().catch(next);
 });
