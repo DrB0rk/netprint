@@ -20,7 +20,12 @@ const PrinterSelector: React.FC<PrinterSelectorProps> = ({ onPrinterSelect }) =>
     setIsScanning(true);
     setError(null);
     try {
-      const response = await fetch('/api/printers');
+      const response = await fetch('/api/printers', {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to scan for printers');
       }

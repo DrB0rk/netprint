@@ -34,12 +34,16 @@ await fs.mkdir(uploadsDir, { recursive: true });
 app.get('/api/printers', async (req, res) => {
   try {
     const printers = await discoverPrinters();
-    // Ensure we're sending a valid JSON response
+    // Explicitly set JSON content type and CORS headers
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', 'http://print.borklab.com');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    // Ensure we're sending valid JSON
     res.json(printers || []);
   } catch (error) {
     console.error('Error discovering printers:', error);
-    // Ensure error response is also valid JSON
     res.status(500).json({ 
       error: 'Failed to discover printers',
       printers: [] 
