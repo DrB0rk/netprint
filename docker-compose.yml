@@ -6,9 +6,7 @@ services:
     ports:
       - "80:80"
     environment:
-      - VITE_API_URL=http://backend:3001
-    depends_on:
-      - backend
+      - VITE_API_URL=http://printapi.borklab.com
     networks:
       - netprint-network
 
