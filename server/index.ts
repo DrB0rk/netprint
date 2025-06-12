@@ -34,9 +34,12 @@ await fs.mkdir(uploadsDir, { recursive: true });
 app.get('/api/printers', async (req, res) => {
   try {
     const printers = await discoverPrinters();
+    // Ensure we're sending a valid JSON response
+    res.setHeader('Content-Type', 'application/json');
     res.json(printers || []);
   } catch (error) {
     console.error('Error discovering printers:', error);
+    // Ensure error response is also valid JSON
     res.status(500).json({ 
       error: 'Failed to discover printers',
       printers: [] 
